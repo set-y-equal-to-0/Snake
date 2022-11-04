@@ -38,24 +38,30 @@ def start(game_state: typing.Dict):
 
     global ADD
     global SUB
-    global I
-    global J
-    global WIDTH
-    global HEIGHT
-    global BOARD_SET
-
     ADD = lambda coord, offset: (coord[0] + offset[0], coord[1] + offset[1])
     SUB = lambda coord, offset: (coord[0] - offset[0], coord[1] - offset[1])
-
+    
+    global I
+    global J
     I, J = (1, 0), (0, 1)
 
+    global WIDTH
+    global HEIGHT
     WIDTH, HEIGHT = game_state['board']['width'], game_state['board']['height']
+
+    global CENTER
+    CENTER = WIDTH // 2, HEIGHT // 2
+
+    global BOARD_SET
     BOARD_SET = set((x, y) for x in range(0, WIDTH) for y in range(0, HEIGHT))
- 
+    
 
 # end is called when your Battlesnake finishes a game
 def end(game_state: typing.Dict):
     print("GAME OVER\n")
+
+
+
 
 
 def get_empty_spaces(game_state) -> typing.Set:
@@ -70,9 +76,27 @@ def get_empty_spaces(game_state) -> typing.Set:
 
     empty_spaces = BOARD_SET - occupied
     return empty_spaces
+ 
+
+def get_directions(vector: typing.Tuple[int,int]):
+
+    direction_set = set()
+
+    if vector[0] > 0:
+       direction_set.add('right')
+
+    if vector[0] < 0:
+        direction_set.add('left')
+
+    if vector[1] > 0:
+        direction_set.add('up')
+
+    if vector[1] < 0:
+        direction_set.add('down')
+
+    return direction_set
 
 
-    
 
 # move is called on every turn and returns your next move
 # Valid moves are "up", "down", "left", or "right"
@@ -102,36 +126,31 @@ def move(game_state: typing.Dict) -> typing.Dict:
     if my_head[1] == 0 or SUB(my_head, J) not in empty_spaces_set:
         moves_set.remove('down')
 
-    food_direction = set()
-
     for food in food_list:
 
         diff = SUB(food, my_head)
 
-        if diff[0] > 0:
-            food_direction.add('right')
+        food_direction_set = get_directions(diff)
 
-        if diff[0] < 0:
-            food_direction.add('left')
-
-        if diff[1] > 0:
-            food_direction.add('up')
-
-        if diff[1] < 0:
-            food_direction.add('down')
-
-        food_direction &= moves_set
+        food_direction_set &= moves_set
         
-        if len(food_direction) > 0:
-
-            next_move = food_direction.pop()
+        if len(food_direction_set) > 0:
             break
 
-    if len(moves_set) > 0 and next_move is None:
+    center_direction_set = get_directions(SUB(CENTER, my_head))
+
+    if len(moves_set) == 0:
+        next_move = 'down'
+
+    elif len(food_direction_set) > 0:
+        next_move = food_direction_set.pop()
+
+    elif len(center_direction_set) > 0 and game_state['you']['health'] < 60:
+        next_move = center_direction_set.pop()
+
+    else:
         next_move = moves_set.pop()
 
-    if next_move is None:
-        next_move = 'down'
 
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
