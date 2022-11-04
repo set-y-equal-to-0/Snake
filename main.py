@@ -19,7 +19,7 @@ import numpy as np
 ADD = lambda coord, offset: (coord[0] + offset[0], coord[1] + offset[1])
 SUB = lambda coord, offset: (coord[0] - offset[0], coord[1] - offset[1])
 
-BOARD_SET = set((x, y) for x in range(0, 11) for y in range(0, 11))
+BOARD_SET = None 
 
 I, J = (1, 0), (0, 1)
 
@@ -48,6 +48,7 @@ def start(game_state: typing.Dict):
     print("GAME START")
 
     WIDTH, HEIGHT = game_state['board']['width'], game_state['board']['height']
+    BOARD_SET = set((x, y) for x in range(0, WIDTH) for y in range(0, HEIGHT))
 
 
 # end is called when your Battlesnake finishes a game
