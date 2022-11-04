@@ -138,6 +138,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
             break
 
     center_direction_set = get_directions(SUB(CENTER, my_head))
+    center_direction_set &= moves_set
 
     if len(moves_set) == 0:
         next_move = 'down'
