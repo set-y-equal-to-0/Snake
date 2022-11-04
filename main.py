@@ -67,16 +67,50 @@ def end(game_state: typing.Dict):
 def get_empty_spaces(game_state) -> typing.Set:
 
     snake_list = game_state['board']['snakes']
+    hazards_list = game_state['board']['hazards']
     occupied = set()
 
     for snake in snake_list:
         for coord_dict in snake['body']:
-            coord = (coord_dict['x'], coord_dict['y'])
+
+            coord = coord_dict['x'], coord_dict['y']
             occupied.add(coord)
+
+    for hazard_dict in hazards_list:
+        coord = hazard_dict['x'], hazard_dict['y']
+        occupied.add(coord)
 
     empty_spaces = BOARD_SET - occupied
     return empty_spaces
  
+
+def get_head_potiential(game_state):
+    
+    snake_list = game_state['board']['snakes']
+
+    head_set = set()
+    for snake in snake_list:
+
+        head = snake['body'][0]
+        head_set.add((head['x'], head['y']))
+
+    my_head_dict = game_state['you']['body'][0]
+    my_head = my_head_dict['x'], my_head_dict['y']
+    head_set.remove((my_head_dict['x'], my_head_dict['y']))
+
+    my_head_set = {ADD(my_head, J), SUB(my_head, J), SUB(my_head, I), ADD(my_head, I)}
+
+    potential_head_coords = set()
+    for head in head_set:
+        adjacent = ADD(head, J), SUB(head, J), SUB(head, I), ADD(head, I)
+        potential_head_coords.add(adjacent)
+
+    return my_head_set - potential_head_coords
+
+    
+
+    return potential_head_coords
+
 
 def get_directions(vector: typing.Tuple[int,int]):
 
@@ -140,19 +174,33 @@ def move(game_state: typing.Dict) -> typing.Dict:
     center_direction_set = get_directions(SUB(CENTER, my_head))
     center_direction_set &= valid_moves_set
 
-    if len(valid_moves_set) == 0:
+    no_heads_set = get_head_potiential(game_state)
+    avoid_head_directions = set()
+
+    for pos in no_heads_set:
+        avoid_head_directions |= get_directions(SUB(pos, my_head))
+
+    avoid_head_directions &= valid_moves_set
+
+    if not valid_moves_set:
         next_move = 'down'
 
-    elif len(food_direction_set) > 0:
-        next_move = food_direction_set.pop()
+    elif avoid_head_directions & food_direction_set:
 
-    elif len(center_direction_set) > 0 and game_state['you']['health'] < 60:
-        next_move = center_direction_set.pop()
+        intersect = avoid_head_directions & food_direction_set
+        next_move = intersect.pop()
+
+    elif avoid_head_directions & center_direction_set:
+
+        intersect = avoid_head_directions & center_direction_set
+        next_move = intersect.pop()
+
+    elif avoid_head_directions:
+        next_move = avoid_head_directions.pop()
 
     else:
         next_move = valid_moves_set.pop()
 
-    print(empty_spaces_set)
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
 
