@@ -103,11 +103,9 @@ def get_directions(vector: typing.Tuple[int,int]):
 # See https://docs.battlesnake.com/api/example-move for available data
 def move(game_state: typing.Dict) -> typing.Dict:
 
-    moves_set = {'left', 'right', 'up', 'down'}
+    valid_moves_set = {'left', 'right', 'up', 'down'}
 
     my_head = game_state["you"]["body"][0]['x'], game_state["you"]["body"][0]['y']  # Coordinates of my head
-
-    next_move = None
 
     food_list = list((coord_dict['x'], coord_dict['y']) for coord_dict in game_state['board']['food'])
     food_list.sort(key = lambda food: abs(my_head[0] - food[0]) + abs(my_head[1] - food[1]))
@@ -115,16 +113,18 @@ def move(game_state: typing.Dict) -> typing.Dict:
     empty_spaces_set = get_empty_spaces(game_state)
 
     if ADD(my_head, I) not in empty_spaces_set:
-        moves_set.remove('right')
+        valid_moves_set.remove('right')
 
     if SUB(my_head, I) not in empty_spaces_set:
-        moves_set.remove('left')
+        valid_moves_set.remove('left')
 
     if ADD(my_head, J) not in empty_spaces_set:
-        moves_set.remove('up')
+        valid_moves_set.remove('up')
 
     if SUB(my_head, J) not in empty_spaces_set:
-        moves_set.remove('down')
+        valid_moves_set.remove('down')
+
+    food_direction_set = set()
 
     for food in food_list:
 
@@ -132,15 +132,15 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
         food_direction_set = get_directions(diff)
 
-        food_direction_set &= moves_set
+        food_direction_set &= valid_moves_set
         
         if len(food_direction_set) > 0:
             break
 
     center_direction_set = get_directions(SUB(CENTER, my_head))
-    center_direction_set &= moves_set
+    center_direction_set &= valid_moves_set
 
-    if len(moves_set) == 0:
+    if len(valid_moves_set) == 0:
         next_move = 'down'
 
     elif len(food_direction_set) > 0:
@@ -150,9 +150,9 @@ def move(game_state: typing.Dict) -> typing.Dict:
         next_move = center_direction_set.pop()
 
     else:
-        next_move = moves_set.pop()
+        next_move = valid_moves_set.pop()
 
-
+    print(empty_spaces_set)
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
 
