@@ -114,16 +114,16 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     empty_spaces_set = get_empty_spaces(game_state)
 
-    if my_head[0] == WIDTH - 1 or ADD(my_head, I) not in empty_spaces_set:
+    if ADD(my_head, I) not in empty_spaces_set:
         moves_set.remove('right')
 
-    if my_head[0] == 0 or SUB(my_head, I) not in empty_spaces_set:
+    if SUB(my_head, I) not in empty_spaces_set:
         moves_set.remove('left')
 
-    if my_head[1] == HEIGHT - 1 or ADD(my_head, J) not in empty_spaces_set:
+    if ADD(my_head, J) not in empty_spaces_set:
         moves_set.remove('up')
 
-    if my_head[1] == 0 or SUB(my_head, J) not in empty_spaces_set:
+    if SUB(my_head, J) not in empty_spaces_set:
         moves_set.remove('down')
 
     for food in food_list:
