@@ -19,11 +19,10 @@ import numpy as np
 ADD = lambda coord, offset: (coord[0] + offset[0], coord[1] + offset[1])
 SUB = lambda coord, offset: (coord[0] - offset[0], coord[1] - offset[1])
 
-BOARD_SET = None 
+
 
 I, J = (1, 0), (0, 1)
 
-WIDTH, HEIGHT = 0, 0
 
 
 
@@ -47,8 +46,14 @@ def info() -> typing.Dict:
 def start(game_state: typing.Dict):
     print("GAME START")
 
+    global WIDTH
+    global HEIGHT
+    global BOARD_SET
     WIDTH, HEIGHT = game_state['board']['width'], game_state['board']['height']
     BOARD_SET = set((x, y) for x in range(0, WIDTH) for y in range(0, HEIGHT))
+ 
+
+
 
 
 # end is called when your Battlesnake finishes a game
@@ -67,6 +72,7 @@ def get_empty_spaces(game_state) -> typing.Set:
             occupied.add(coord)
 
     empty_spaces = BOARD_SET - occupied
+    print(BOARD_SET)
     return empty_spaces
 
 
