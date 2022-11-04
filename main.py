@@ -23,6 +23,10 @@ BOARD_SET = set((x, y) for x in range(0, 11) for y in range(0, 11))
 
 I, J = (1, 0), (0, 1)
 
+WIDTH, HEIGHT = 0, 0
+
+
+
 
 # info is called when you create your Battlesnake on play.battlesnake.com
 # and controls your Battlesnake's appearance
@@ -42,6 +46,8 @@ def info() -> typing.Dict:
 # start is called when your Battlesnake begins a game
 def start(game_state: typing.Dict):
     print("GAME START")
+
+    WIDTH, HEIGHT = game_state['board']['width'], game_state['board']['height']
 
 
 # end is called when your Battlesnake finishes a game
@@ -77,9 +83,9 @@ def move(game_state: typing.Dict) -> typing.Dict:
     next_move = None
 
     food_list = list((coord_dict['x'], coord_dict['y']) for coord_dict in game_state['board']['food'])
-    food_list.sort(key = lambda head, food: abs(head[0] - food[0]) + abs(head[1] - food[1]))
+    food_list.sort(key = lambda food: abs(my_head[0] - food[0]) + abs(my_head[1] - food[1]))
 
-    empty_spaces_set = get_empty_spaces()
+    empty_spaces_set = get_empty_spaces(game_state)
 
     if my_head[0] == 10 or ADD(my_head, I) not in empty_spaces_set:
         moves_set.remove('right')
@@ -97,7 +103,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     for food in food_list:
 
-        diff = SUB(my_head, food)
+        diff = SUB(food, my_head)
 
         if diff[0] > 0:
             food_direction.add('right')
@@ -121,7 +127,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     if len(moves_set) > 0 and next_move is None:
         next_move = moves_set.pop()
 
-    else:
+    if next_move is None:
         next_move = 'down'
 
 
