@@ -67,14 +67,13 @@ def end(game_state: typing.Dict):
 def get_occupied(game_state) -> typing.Set:
 
     snake_list = game_state['board']['snakes']
+
     hazards_list = game_state['board']['hazards']
     occupied = set()
 
     for snake in snake_list:
         for coord_dict in snake['body']:
-
-            coord = P(coord_dict['x'], coord_dict['y'])
-            occupied.add(coord)
+            occupied.add(P(coord_dict['x'], coord_dict['y']))
 
     for hazard_dict in hazards_list:
         coord = P(hazard_dict['x'], hazard_dict['y'])
@@ -87,22 +86,25 @@ def get_head_potiential(game_state):
     
     snake_list = game_state['board']['snakes']
 
+    for snake in snake_list:
+        if snake['id'] == game_state['you']['id']:
+            snake_list.remove(snake)
+            break
+
     head_set = set()
     for snake in snake_list:
 
         head = snake['body'][0]
         head_set.add(P(head['x'], head['y']))
 
-    my_head_dict = game_state['you']['body'][0]
-    my_head = P(my_head_dict['x'], my_head_dict['y'])
-    head_set.remove(my_head)
-
+    my_head = P(game_state['you']['body'][0]['x'], game_state['you']['body'][0]['y']) 
     my_head_set = {my_head + J, my_head - J, my_head + I, my_head - I}
 
     potential_head_coords = set()
     for head in head_set:
         adjacent = head + J, head - J, head + I, head - I
-        potential_head_coords.add(adjacent)
+        for point in adjacent:
+            potential_head_coords.add(point)
 
     return my_head_set - potential_head_coords
 
