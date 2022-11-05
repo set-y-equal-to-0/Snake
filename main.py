@@ -12,6 +12,12 @@
 
 import random
 import typing
+from point_class import V2 as P
+
+
+
+
+
 
 
 
@@ -36,25 +42,19 @@ def info() -> typing.Dict:
 def start(game_state: typing.Dict):
     print("GAME START")
 
-    global ADD
-    global SUB
-    ADD = lambda coord, offset: (coord[0] + offset[0], coord[1] + offset[1])
-    SUB = lambda coord, offset: (coord[0] - offset[0], coord[1] - offset[1])
-    
     global I
     global J
-    I, J = (1, 0), (0, 1)
+    I = P(1, 0)
+    J = P(0, 1)
 
     global WIDTH
     global HEIGHT
     WIDTH, HEIGHT = game_state['board']['width'], game_state['board']['height']
 
     global CENTER
-    CENTER = WIDTH // 2, HEIGHT // 2
-
-    global BOARD_SET
-    BOARD_SET = set((x, y) for x in range(0, WIDTH) for y in range(0, HEIGHT))
+    CENTER = P(WIDTH // 2, HEIGHT // 2)
     
+
 
 # end is called when your Battlesnake finishes a game
 def end(game_state: typing.Dict):
@@ -64,7 +64,7 @@ def end(game_state: typing.Dict):
 
 
 
-def get_empty_spaces(game_state) -> typing.Set:
+def get_occupied(game_state) -> typing.Set:
 
     snake_list = game_state['board']['snakes']
     hazards_list = game_state['board']['hazards']
@@ -73,15 +73,14 @@ def get_empty_spaces(game_state) -> typing.Set:
     for snake in snake_list:
         for coord_dict in snake['body']:
 
-            coord = coord_dict['x'], coord_dict['y']
+            coord = P(coord_dict['x'], coord_dict['y'])
             occupied.add(coord)
 
     for hazard_dict in hazards_list:
-        coord = hazard_dict['x'], hazard_dict['y']
+        coord = P(hazard_dict['x'], hazard_dict['y'])
         occupied.add(coord)
 
-    empty_spaces = BOARD_SET - occupied
-    return empty_spaces
+    return occupied
  
 
 def get_head_potiential(game_state):
@@ -92,90 +91,82 @@ def get_head_potiential(game_state):
     for snake in snake_list:
 
         head = snake['body'][0]
-        head_set.add((head['x'], head['y']))
+        head_set.add(P(head['x'], head['y']))
 
     my_head_dict = game_state['you']['body'][0]
-    my_head = my_head_dict['x'], my_head_dict['y']
+    my_head = P(my_head_dict['x'], my_head_dict['y'])
     head_set.remove(my_head)
 
-    my_head_set = {ADD(my_head, J), SUB(my_head, J), SUB(my_head, I), ADD(my_head, I)}
+    my_head_set = {my_head + J, my_head - J, my_head + I, my_head - I}
 
     potential_head_coords = set()
     for head in head_set:
-        adjacent = ADD(head, J), SUB(head, J), SUB(head, I), ADD(head, I)
+        adjacent = head + J, head - J, head + I, head - I
         potential_head_coords.add(adjacent)
 
     return my_head_set - potential_head_coords
-
 
 
 def get_directions(vector: typing.Tuple[int,int]):
 
     direction_set = set()
 
-    if vector[0] > 0:
+    if vector.x > 0:
        direction_set.add('right')
 
-    if vector[0] < 0:
+    if vector.x < 0:
         direction_set.add('left')
 
-    if vector[1] > 0:
+    if vector.y > 0:
         direction_set.add('up')
 
-    if vector[1] < 0:
+    if vector.y < 0:
         direction_set.add('down')
 
     return direction_set
 
 
-
-# move is called on every turn and returns your next move
-# Valid moves are "up", "down", "left", or "right"
-# See https://docs.battlesnake.com/api/example-move for available data
 def move(game_state: typing.Dict) -> typing.Dict:
 
     valid_moves_set = {'left', 'right', 'up', 'down'}
 
-    my_head = game_state["you"]["body"][0]['x'], game_state["you"]["body"][0]['y']  # Coordinates of my head
+    my_head = P(game_state["you"]["body"][0]['x'], game_state["you"]["body"][0]['y'])  # Coordinates of my head
 
-    food_list = list((coord_dict['x'], coord_dict['y']) for coord_dict in game_state['board']['food'])
-    food_list.sort(key = lambda food: abs(my_head[0] - food[0]) + abs(my_head[1] - food[1]))
+    food_list = list(P(coord_dict['x'], coord_dict['y']) for coord_dict in game_state['board']['food'])
+    food_list.sort(key = lambda food: len(food - my_head))
 
-    empty_spaces_set = get_empty_spaces(game_state)
+    occupied_set = get_occupied(game_state)
 
-    if ADD(my_head, I) not in empty_spaces_set:
+    if my_head + I in occupied_set or my_head.x == WIDTH - 1:
         valid_moves_set.remove('right')
 
-    if SUB(my_head, I) not in empty_spaces_set:
+    if my_head - I in occupied_set or my_head.x == 0:
         valid_moves_set.remove('left')
 
-    if ADD(my_head, J) not in empty_spaces_set:
+    if my_head + J in occupied_set or my_head.y == HEIGHT - 1:
         valid_moves_set.remove('up')
 
-    if SUB(my_head, J) not in empty_spaces_set:
+    if my_head - J in occupied_set or my_head.y == 0:
         valid_moves_set.remove('down')
 
     food_direction_set = set()
 
     for food in food_list:
 
-        diff = SUB(food, my_head)
-
-        food_direction_set = get_directions(diff)
-
+        food_direction_set = get_directions(food - my_head)
         food_direction_set &= valid_moves_set
         
         if len(food_direction_set) > 0:
             break
 
-    center_direction_set = get_directions(SUB(CENTER, my_head))
+    center_direction_set = get_directions(CENTER - my_head)
     center_direction_set &= valid_moves_set
 
     no_heads_set = get_head_potiential(game_state)
     avoid_head_directions = set()
 
     for pos in no_heads_set:
-        avoid_head_directions |= get_directions(SUB(pos, my_head))
+        avoid_head_directions |= get_directions(pos - my_head)
 
     avoid_head_directions &= valid_moves_set
 
@@ -183,14 +174,10 @@ def move(game_state: typing.Dict) -> typing.Dict:
         next_move = 'down'
 
     elif avoid_head_directions & food_direction_set:
-
-        intersect = avoid_head_directions & food_direction_set
-        next_move = intersect.pop()
-
+        next_move = (avoid_head_directions & food_direction_set).pop()
+   
     elif avoid_head_directions & center_direction_set:
-
-        intersect = avoid_head_directions & center_direction_set
-        next_move = intersect.pop()
+        next_move = (avoid_head_directions & center_direction_set).pop()
 
     elif avoid_head_directions:
         next_move = avoid_head_directions.pop()
