@@ -96,7 +96,7 @@ def get_head_potiential(game_state):
 
     my_head_dict = game_state['you']['body'][0]
     my_head = my_head_dict['x'], my_head_dict['y']
-    head_set.remove((my_head_dict['x'], my_head_dict['y']))
+    head_set.remove(my_head)
 
     my_head_set = {ADD(my_head, J), SUB(my_head, J), SUB(my_head, I), ADD(my_head, I)}
 
@@ -107,9 +107,6 @@ def get_head_potiential(game_state):
 
     return my_head_set - potential_head_coords
 
-    
-
-    return potential_head_coords
 
 
 def get_directions(vector: typing.Tuple[int,int]):
