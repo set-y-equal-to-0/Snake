@@ -153,7 +153,7 @@ def path_find(game_state, network = None, empty_set = None, remaining_set = None
                 network.add(nb)
                 empty_set.remove(nb)
                 index += 1
-                network, remaining_set = path_find(game_state, network, None, empty_set, nb, index)
+                network, empty_set = path_find(game_state, network, None, empty_set, nb, index)
                 group_list.append((V_TO_D[nb - p0], len(network)))
 
         group_list.sort(key = lambda e: e[1], reverse = True)
@@ -222,7 +222,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     for e in group_list:
         if e[0] not in valid_moves_set:
             group_list.remove(e)
-            
+
     group_direction_set = set(group_list[0][0])
 
     if not valid_moves_set:
