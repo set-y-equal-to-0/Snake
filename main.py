@@ -14,6 +14,7 @@ import random
 import typing
 from point_class import V2 as P
 from functools import reduce
+import time
 
 
 
@@ -136,10 +137,10 @@ def get_directions(vector: typing.Tuple[int,int]):
     return direction_set
 
 
-def path_find(game_state):        
+def path_find(game_state):       
     
     adj = lambda point: {point + J, point - J, point + I, point - I}
-    any_adj = lambda ntwk_set, adj_set: reduce(lambda a, b: a or b, (neighbour in ntwk_set for neighbour in adj_set))
+    any_adj = lambda ntwk_set, adj_set: reduce(lambda a, b: a or b, (neighbour in ntwk_set for neighbour in adj_set), 0)
 
     occupied_set = get_occupied(game_state)
     clear_set = BOARD_SET - occupied_set
