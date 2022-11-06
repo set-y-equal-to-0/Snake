@@ -13,6 +13,7 @@
 import random
 import typing
 from point_class import V2 as P
+from functools import reduce
 
 
 
@@ -91,7 +92,7 @@ def get_occupied(game_state) -> typing.Set:
 
 def get_head_potiential(game_state):
     
-    snake_list = game_state['board']['snakes']
+    snake_list = list(snake for snake in game_state['board']['snakes'])
 
     for snake in snake_list:
         if snake['id'] == game_state['you']['id']:
@@ -135,42 +136,44 @@ def get_directions(vector: typing.Tuple[int,int]):
     return direction_set
 
 
-def path_find(game_state, network = None, empty_set = None, remaining_set = None, p0 = None, index = 0):
-
+def path_find(game_state):        
+    
     adj = lambda point: {point + J, point - J, point + I, point - I}
+    any_adj = lambda ntwk_set, adj_set: reduce(lambda a, b: a or b, (neighbour in ntwk_set for neighbour in adj_set))
 
-    if index == 0:
+    occupied_set = get_occupied(game_state)
+    clear_set = BOARD_SET - occupied_set
+    my_head = P(game_state['you']['body'][0]['x'], game_state['you']['body'][0]['y'])
+    group_dict = {}
 
-        group_list = []
-        network = set()
-        empty_set = BOARD_SET - get_occupied(game_state)
-        remaining_set = set()
-        p0 = P(game_state['you']['body'][0]['x'], game_state['you']['body'][0]['y'])
+    valid_adj = adj(my_head) - occupied_set
+    for square in valid_adj:
+        network_set = set()
+        try:   
+            clear_set.remove(square)
+            network_set.add(square)
+            while True:
+                length = len(network_set)
+                for space in clear_set:
+                    if any_adj(network_set, adj(space) - occupied_set):
+                        network_set.add(space)      
+                if length == len(network_set):
+                    break
+                
+            clear_set -= network_set
+            group_dict[square] = network_set
 
-        neighbours = adj(p0)
-        for nb in neighbours:
-            if nb in empty_set and nb not in network:
-                network.add(nb)
-                empty_set.remove(nb)
-                index += 1
-                network, empty_set = path_find(game_state, network, None, empty_set, nb, index)
-                group_list.append((V_TO_D[nb - p0], len(network)))
+        except KeyError:
+            continue
 
-        group_list.sort(key = lambda e: e[1], reverse = True)
-        return group_list
+    temp_dict = {}
+    for point in valid_adj - set(group_dict.keys()):
+        for value in group_dict.values():
+            if point in value:
+                temp_dict[point] = value
+    group_dict |= temp_dict
 
-    elif index > 0:
-
-        neighbours = adj(p0)
-        for nb in neighbours:
-            if nb in remaining_set and nb not in network:
-                network.add(nb)
-                remaining_set.remove(nb)
-                index += 1
-                network, remaining_set = path_find(game_state, network, None, remaining_set, p0, index)
-
-        return network, remaining_set
-
+    return list((V_TO_D[point - my_head], len(set)) for point, set in group_dict.items())
 
 
 def move(game_state: typing.Dict) -> typing.Dict:
@@ -218,21 +221,17 @@ def move(game_state: typing.Dict) -> typing.Dict:
     avoid_head_directions &= valid_moves_set
 
     group_list = path_find(game_state)
-
-    for e in group_list:
-        if e[0] not in valid_moves_set:
-            group_list.remove(e)
-
-    group_direction_set = set(group_list[0][0])
+    group_list.sort(key = lambda e: e[1], reverse = True)
+    group_set = {e[0] for e in group_list if e[1] == group_list[0][1]}
 
     if not valid_moves_set:
         next_move = 'down'
 
-    elif avoid_head_directions & group_direction_set & food_direction_set:
-        next_move = (avoid_head_directions & group_direction_set & food_direction_set).pop()
+    elif avoid_head_directions & group_set & food_direction_set:
+        next_move = (avoid_head_directions & group_set & food_direction_set).pop()
 
-    elif avoid_head_directions & group_direction_set:
-        next_move = (avoid_head_directions & group_direction_set).pop()
+    elif avoid_head_directions & group_set:
+        next_move = (avoid_head_directions & group_set).pop()
 
     elif avoid_head_directions & food_direction_set:
         next_move = (avoid_head_directions & food_direction_set).pop()
