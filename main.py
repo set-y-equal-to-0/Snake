@@ -53,7 +53,14 @@ def start(game_state: typing.Dict):
 
     global CENTER
     CENTER = P(WIDTH // 2, HEIGHT // 2)
-    
+
+    global BOARD_SET
+    BOARD_SET = {P(x, y) for x in range(WIDTH) for y in range(HEIGHT)}
+
+    global D_TO_V
+    global V_TO_D
+    D_TO_V = {'left': P(-1, 0), 'right': I, 'up': J, 'down': P(0, -1)}
+    V_TO_D = {P(-1, 0): 'left', I: 'right', J: 'up', P(0, -1): 'down'}
 
 
 # end is called when your Battlesnake finishes a game
@@ -128,6 +135,44 @@ def get_directions(vector: typing.Tuple[int,int]):
     return direction_set
 
 
+def path_find(game_state, network = None, empty_set = None, remaining_set = None, p0 = None, index = 0):
+
+    adj = lambda point: {point + J, point - J, point + I, point - I}
+
+    if index == 0:
+
+        group_list = []
+        network = set()
+        empty_set = BOARD_SET - get_occupied(game_state)
+        remaining_set = set()
+        p0 = P(game_state['you']['body'][0]['x'], game_state['you']['body'][0]['y'])
+
+        neighbours = adj(p0)
+        for nb in neighbours:
+            if nb in empty_set and nb not in network:
+                network.add(nb)
+                empty_set.remove(nb)
+                index += 1
+                network, remaining_set = path_find(game_state, network, None, empty_set, nb, index)
+                group_list.append((V_TO_D[nb - p0], len(network)))
+
+        group_list.sort(key = lambda e: e[1], reverse = True)
+        return group_list
+
+    elif index > 0:
+
+        neighbours = adj(p0)
+        for nb in neighbours:
+            if nb in remaining_set and nb not in network:
+                network.add(nb)
+                remaining_set.remove(nb)
+                index += 1
+                network, remaining_set = path_find(game_state, network, None, remaining_set, p0, index)
+
+        return network, remaining_set
+
+
+
 def move(game_state: typing.Dict) -> typing.Dict:
 
     valid_moves_set = {'left', 'right', 'up', 'down'}
@@ -172,8 +217,22 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     avoid_head_directions &= valid_moves_set
 
+    group_list = path_find(game_state)
+
+    for e in group_list:
+        if e[0] not in valid_moves_set:
+            group_list.remove(e)
+            
+    group_direction_set = set(group_list[0][0])
+
     if not valid_moves_set:
         next_move = 'down'
+
+    elif avoid_head_directions & group_direction_set & food_direction_set:
+        next_move = (avoid_head_directions & group_direction_set & food_direction_set).pop()
+
+    elif avoid_head_directions & group_direction_set:
+        next_move = (avoid_head_directions & group_direction_set).pop()
 
     elif avoid_head_directions & food_direction_set:
         next_move = (avoid_head_directions & food_direction_set).pop()
