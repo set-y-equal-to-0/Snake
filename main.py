@@ -266,7 +266,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     for direc, size, group in d['area_list']:
         if d['food_list'][-1] in group and game_state['you']['health'] > 30:
-            return {"move": next_move}
+            return {"move": direc}
 
     if not d['valid_moves_set']:
         next_move = 'down'
