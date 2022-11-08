@@ -237,7 +237,7 @@ def new_path(occupied, my_head, my_head_adj, network_set = set(), group_dict = {
                 temp_dict[point] = value
     group_dict |= temp_dict
 
-    summary_list = list((V_TO_D[point - my_head], len(set)) for point, set in group_dict.items())
+    summary_list = list((V_TO_D[point - my_head], len(set), set) for point, set in group_dict.items())
     summary_list.sort(key = lambda e: e[1], reverse = True)
     return summary_list
     
@@ -266,6 +266,10 @@ def move(game_state: typing.Dict) -> typing.Dict:
     avoid_head_directions &= d['valid_moves_set']
 
     group_set = {e[0] for e in d['area_list'] if e[1] == d['area_list'][0][1]}
+
+    for direc, size, group in d['area_list']:
+        if d['food_list'][0] in group:
+            return {"move": direc}
 
     if not d['valid_moves_set']:
         next_move = 'down'
