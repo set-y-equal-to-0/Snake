@@ -10,11 +10,10 @@
 # To get you started we've included code to prevent your Battlesnake from moving backwards.
 # For more info see docs.battlesnake.com
 
-import random
 import typing
 from point_class import V2 as P
 from functools import reduce
-import time
+
 
 
 
@@ -41,25 +40,32 @@ def start(game_state: typing.Dict):
 
     global I
     global J
-    I = P(1, 0)
-    J = P(0, 1)
+    I = (1, 0)
+    J = (0, 1)
 
     global WIDTH
     global HEIGHT
     WIDTH, HEIGHT = game_state['board']['width'], game_state['board']['height']
 
     global CENTER
-    CENTER = P(WIDTH // 2, HEIGHT // 2)
+    CENTER = (WIDTH // 2, HEIGHT // 2)
 
     global BOARD_SET
-    BOARD_SET = {P(x, y) for x in range(WIDTH) for y in range(HEIGHT)}
+    BOARD_SET = {(x, y) for x in range(WIDTH) for y in range(HEIGHT)}
 
     global D_TO_V
     global V_TO_D
-    D_TO_V = {'left': P(-1, 0), 'right': I, 'up': J, 'down': P(0, -1)}
-    V_TO_D = {P(-1, 0): 'left', I: 'right', J: 'up', P(0, -1): 'down'}
+    D_TO_V = {'left': (-1, 0), 'right': I, 'up': J, 'down': (0, -1)}
+    V_TO_D = {(-1, 0): 'left', I: 'right', J: 'up', (0, -1): 'down'}
 
-    global MOVE_PRIORITY
+    global DIST
+    DIST = lambda tup1, tup2: abs(tup1[0] - tup2[0]) + abs(tup1[1] - tup2[1])
+
+    global ADD
+    ADD = lambda a, b: (a[0] + b[0], a[1] + b[1])
+
+    global SUB
+    SUB = lambda a, b: (a[0] - b[0], a[1] - b[1])
 
 def end(game_state: typing.Dict):
     print("GAME OVER\n")
@@ -68,71 +74,65 @@ def end(game_state: typing.Dict):
 
 def first(game_state):
 
-    occupied_set = get_occupied(game_state)
- 
-    clear_set = BOARD_SET - occupied_set
+    info = {}
 
-    my_head = P(game_state['you']['body'][0]['x'], game_state['you']['body'][0]['y'])
-
-    my_head_adj = get_valid_adj(occupied_set, my_head, direction = False)
-
-    food_list = list(P(coord_dict['x'], coord_dict['y']) for coord_dict in game_state['board']['food'])
-    food_list.sort(key = lambda food: len(food - my_head))
-
-    valid_moves_set = get_valid_adj(occupied_set, my_head)
-
-    potential_heads = get_head_potiential(game_state)
- 
-    area_list = new_path(occupied_set, my_head, my_head_adj)
-
-    print({'occupied': occupied_set, 'clear': clear_set, 'my_head': my_head, 'my_head_adj': my_head_adj, 'food_list': food_list, 'valid_moves_set': valid_moves_set, 'potential_heads': potential_heads, 'area_list': area_list})
-
-    return {'occupied': occupied_set, 'clear': clear_set, 'my_head': my_head, 'my_head_adj': my_head_adj, 
-            'food_list': food_list, 'valid_moves_set': valid_moves_set, 'potential_heads': potential_heads, 'area_list': area_list}
-
-
-def get_valid_adj(occupied_set, point, direction = True):
-
-    if direction:
-        valid_moves_set = {'left', 'right', 'up', 'down'}
-        direction_dict = {'r': 'right', 'l': 'left', 'u': 'up', 'd': 'down'}
-
-    else:
-        valid_moves_set = {point + I, point - I, point + J,  point - J}
-        direction_dict = {'r': point + I, 'l': point - I, 'u': point + J, 'd': point - J}
-
-    if point + I in occupied_set or point.x == WIDTH - 1:
-        valid_moves_set.remove(direction_dict['r'])
-
-    if point - I in occupied_set or point.x == 0:
-        valid_moves_set.remove(direction_dict['l'])
-
-    if point + J in occupied_set or point.y == HEIGHT - 1:
-        valid_moves_set.remove(direction_dict['u'])
-
-    if point - J in occupied_set or point.y == 0:
-        valid_moves_set.remove(direction_dict['d'])
-
-    return valid_moves_set
-
-
-def get_occupied(game_state) -> typing.Set:
-
+    # get occupied squares
     snake_list = game_state['board']['snakes']
-
     hazards_list = game_state['board']['hazards']
-    occupied = set()
+    OCCUPIED = set()
 
     for snake in snake_list:
         for coord_dict in snake['body']:
-            occupied.add(P(coord_dict['x'], coord_dict['y']))
+            OCCUPIED.add((coord_dict['x'], coord_dict['y']))
 
     for hazard_dict in hazards_list:
-        coord = P(hazard_dict['x'], hazard_dict['y'])
-        occupied.add(coord)
+        OCCUPIED.add((hazard_dict['x'], hazard_dict['y']))
 
-    return occupied
+    info['occupied'] = OCCUPIED
  
+    info['clear'] = BOARD_SET - OCCUPIED
+
+    info['my_head'] = game_state['you']['body'][0]['x'], game_state['you']['body'][0]['y']
+
+    info['head_adj'] = get_valid_adj(info, info['my_head'], direction=False)
+
+    food_list = list((coord_dict['x'], coord_dict['y']) for coord_dict in game_state['board']['food'])
+    food_list.sort(key = lambda food: DIST(food, info['my_head']))
+    info['food'] = food_list
+
+    info['valid_moves'] = get_valid_adj(info, info['my_head'])
+
+    info['potential_heads'] = get_head_potiential(game_state)
+ 
+    info['areas'] = new_path(info, info['my_head'], info['head_adj'])
+
+    return info
+
+
+def get_valid_adj(info, point, direction = True):
+
+    if direction:
+        valid_moves_set = {'left', 'right', 'up', 'down'}
+        direction_dict = {'r': 'right', 'l': 'left', 'u': 'up', 'info': 'down'}
+
+    else:
+        valid_moves_set = {ADD(point, I), SUB(point, I), ADD(point, J),  SUB(point, J)}
+        direction_dict = {'r': ADD(point, I), 'l': SUB(point, I), 'u': ADD(point, J), 'info': SUB(point, J)}
+
+    if ADD(point, I) in info['occupied'] or point[0] == WIDTH - 1:
+        valid_moves_set.remove(direction_dict['r'])
+
+    if SUB(point, I) in info['occupied'] or point[0] == 0:
+        valid_moves_set.remove(direction_dict['l'])
+
+    if ADD(point, J) in info['occupied'] or point[1] == HEIGHT - 1:
+        valid_moves_set.remove(direction_dict['u'])
+
+    if SUB(point, J) in info['occupied'] or point[1] == 0:
+        valid_moves_set.remove(direction_dict['info'])
+
+    return valid_moves_set
+
 
 def get_head_potiential(game_state):
     
@@ -143,10 +143,10 @@ def get_head_potiential(game_state):
     for snake in snake_list:
         if snake['id'] != game_state['you']['id']:
             head = snake['body'][0]
-            head_set.add(P(head['x'], head['y']))
+            head_set.add((head['x'], head['y']))
     
     for head in head_set:
-        adjacent = head + J, head - J, head + I, head - I
+        adjacent = ADD(point, I), SUB(point, I), ADD(point, J), SUB(point, J)
         for point in adjacent:
             potential_head_coords.add(point)
 
@@ -157,16 +157,16 @@ def get_directions(vector: typing.Tuple[int,int]):
 
     direction_set = set()
 
-    if vector.x > 0:
+    if vector[0] > 0:
        direction_set.add('right')
 
-    if vector.x < 0:
+    if vector[0] < 0:
         direction_set.add('left')
 
-    if vector.y > 0:
+    if vector[1] > 0:
         direction_set.add('up')
 
-    if vector.y < 0:
+    if vector[1] < 0:
         direction_set.add('down')
 
     return direction_set
@@ -210,7 +210,7 @@ def get_directions(vector: typing.Tuple[int,int]):
     return summary_list.sort(key = lambda e: e[1], reverse = True)
 
 
-def new_path(occupied, my_head, my_head_adj, network_set = set(), group_dict = {}, adj_set = None, index = 0):
+def new_path(info, my_head, my_head_adj, network_set = set(), group_dict = {}, adj_set = None, index = 0):
 
     if index == 0:
         adj_set = my_head_adj
@@ -221,7 +221,7 @@ def new_path(occupied, my_head, my_head_adj, network_set = set(), group_dict = {
     for point in adj_set:
         if (index > 0 and point not in network_set) or (index == 0 and point not in total_set):
             network_set.add(point)
-            network_set = new_path(occupied, my_head, my_head_adj, network_set, None, get_valid_adj(occupied, point, direction = False), index + 1)
+            network_set = new_path(info, my_head, my_head_adj, network_set, None, get_valid_adj(info, point, direction = False), index + 1)
             if index == 0: 
                 group_dict[point] = frozenset(network_set)
                 total_set |= network_set
@@ -237,34 +237,34 @@ def new_path(occupied, my_head, my_head_adj, network_set = set(), group_dict = {
                 temp_dict[point] = value
     group_dict |= temp_dict
 
-    summary_list = list((V_TO_D[point - my_head], len(set), set) for point, set in group_dict.items())
+    summary_list = list((V_TO_D[SUB(point, my_head)], len(set), set) for point, set in group_dict.items())
     summary_list.sort(key = lambda e: e[1], reverse = True)
     return summary_list
 
 
 def move(game_state: typing.Dict) -> typing.Dict:
 
-    d = first(game_state)
+    info = first(game_state)
 
     food_direction_set = set()
-    for food in d['food_list']:
-        food_direction_set = get_directions(food - d['my_head'])
-        food_direction_set &= d['valid_moves_set']  
+    for food in info['food']:
+        food_direction_set = get_directions(SUB(food, info['my_head']))
+        food_direction_set &= info['valid_moves']  
         if len(food_direction_set) > 0:
             break
 
-    center_direction_set = get_directions(CENTER - d['my_head'])
-    center_direction_set &= d['valid_moves_set']
+    center_direction_set = get_directions(SUB(CENTER, info['my_head']))
+    center_direction_set &= info['valid_moves']
 
-    no_heads_set = d['my_head_adj'] - get_head_potiential(game_state)
+    no_heads_set = info['head_adj'] - get_head_potiential(game_state)
     avoid_head_directions = set()
     for pos in no_heads_set:
-        avoid_head_directions |= get_directions(pos - d['my_head'])
-    avoid_head_directions &= d['valid_moves_set']
+        avoid_head_directions |= get_directions(SUB(pos, info['my_head']))
+    avoid_head_directions &= info['valid_moves']
 
-    group_set = {e[0] for e in d['area_list'] if e[1] == d['area_list'][0][1]}
+    group_set = {e[0] for e in info['areas'] if e[1] == info['areas'][0][1]}
 
-    if not d['valid_moves_set']:
+    if not info['valid_moves']:
         next_move = 'down'
 
     elif avoid_head_directions & group_set & food_direction_set:
@@ -283,7 +283,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
         next_move = avoid_head_directions.pop()
 
     else:
-        next_move = d['valid_moves_set'].pop()
+        next_move = info['valid_move'].pop()
 
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
