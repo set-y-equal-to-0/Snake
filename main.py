@@ -11,7 +11,6 @@
 # For more info see docs.battlesnake.com
 
 import typing
-from point_class import V2 as P
 from functools import reduce
 
 
@@ -117,7 +116,7 @@ def get_valid_adj(info, point, direction = True):
 
     else:
         valid_moves_set = {ADD(point, I), SUB(point, I), ADD(point, J),  SUB(point, J)}
-        direction_dict = {'r': ADD(point, I), 'l': SUB(point, I), 'u': ADD(point, J), 'info': SUB(point, J)}
+        direction_dict = {'r': ADD(point, I), 'l': SUB(point, I), 'u': ADD(point, J), 'd': SUB(point, J)}
 
     if ADD(point, I) in info['occupied'] or point[0] == WIDTH - 1:
         valid_moves_set.remove(direction_dict['r'])
