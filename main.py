@@ -112,7 +112,7 @@ def get_valid_adj(info, point, direction = True):
 
     if direction:
         valid_moves_set = {'left', 'right', 'up', 'down'}
-        direction_dict = {'r': 'right', 'l': 'left', 'u': 'up', 'info': 'down'}
+        direction_dict = {'r': 'right', 'l': 'left', 'u': 'up', 'd': 'down'}
 
     else:
         valid_moves_set = {ADD(point, I), SUB(point, I), ADD(point, J),  SUB(point, J)}
@@ -128,7 +128,7 @@ def get_valid_adj(info, point, direction = True):
         valid_moves_set.remove(direction_dict['u'])
 
     if SUB(point, J) in info['occupied'] or point[1] == 0:
-        valid_moves_set.remove(direction_dict['info'])
+        valid_moves_set.remove(direction_dict['d'])
 
     return valid_moves_set
 
