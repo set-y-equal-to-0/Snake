@@ -145,7 +145,7 @@ def get_head_potiential(game_state):
             head_set.add((head['x'], head['y']))
     
     for head in head_set:
-        adjacent = ADD(point, I), SUB(point, I), ADD(point, J), SUB(point, J)
+        adjacent = ADD(head, I), SUB(head, I), ADD(head, J), SUB(head, J)
         for point in adjacent:
             potential_head_coords.add(point)
 
