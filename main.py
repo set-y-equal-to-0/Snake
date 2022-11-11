@@ -282,7 +282,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
         next_move = avoid_head_directions.pop()
 
     else:
-        next_move = info['valid_move'].pop()
+        next_move = info['valid_moves'].pop()
 
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
